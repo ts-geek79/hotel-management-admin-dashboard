@@ -39,7 +39,7 @@ const Sidebar = () => {
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                pathname === item.href
+                pathname.startsWith(item.href)
                   ? "bg-slate-800 text-[#2ec27e] font-medium"
                   : "text-slate-400 hover:bg-slate-900 hover:text-white"
               }`}

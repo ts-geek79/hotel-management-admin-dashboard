@@ -16,10 +16,6 @@ const LoginPage = () => {
   const {
     values,
     errors,
-    // CHANGED: destructure `touched` from useForm (new with Formik integration).
-    // Formik only populates errors for a field after it has been blurred,
-    // but we must also check `touched` before showing the error message so
-    // we never flash validation errors on fields the user hasn't visited yet.
     touched,
     formError,
     isSubmitting,
@@ -87,10 +83,6 @@ const LoginPage = () => {
                   value={values.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  // CHANGED: gate className and error message on `touched.email`
-                  // so the red border only appears after the user has blurred the field.
-                  // Before: className={errors.email ? "border-red-400 ..." : ""}
-                  // After:  className={touched.email && errors.email ? "..." : ""}
                   className={
                     touched.email && errors.email
                       ? "border-red-400 focus-visible:ring-red-300"

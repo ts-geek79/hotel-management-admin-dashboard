@@ -15,7 +15,6 @@ import { toast } from "sonner";
 const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
-
   const handleLogOut = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
