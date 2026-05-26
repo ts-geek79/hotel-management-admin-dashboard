@@ -1,40 +1,20 @@
-import { jwtVerify } from "jose";
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export const proxy = async (request: NextRequest) => {
-  const token = request.cookies.get("token")?.value;
-  const isApi = request.nextUrl.pathname.startsWith("/api");
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+]);
 
-  if (!token) {
-    if (isApi)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    return NextResponse.redirect(new URL("/login", request.url));
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
   }
-
-  if (!process.env.JWT_SECRET_KEY) {
-    return NextResponse.json({ error: "No secret key found" }, { status: 500 });
-  }
-
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
-    await jwtVerify(token, secret);
-    return NextResponse.next();
-  } catch {
-    if (isApi)
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-};
+});
 
 export const config = {
   matcher: [
-    "/",
-    "/dashboard/:path*",
-    "/rooms/:path*",
-    "/guests/:path*",
-    "/bookings/:path*",
-    "/api/rooms/:path*",
-    "/api/guests/:path*",
-    "/api/bookings/:path*",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+    "/__clerk/(.*)",
   ],
 };

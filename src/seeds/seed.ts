@@ -27,11 +27,6 @@ const seed = async () => {
       (1,1,'2026-03-15','2026-03-20')
     `);
 
-    await pool.query(`
-      INSERT INTO users (email,password)
-      VALUES ('admin@gmail.com','$2b$10$7nLAkUfQ.Lzv9WcGmc/AlOPoFkb.Wxk9loy2bfzbsFoxRDlxEfA5K')
-      `);
-
     console.log("Seed data inserted successfully");
   } catch (error) {
     console.error(error);
