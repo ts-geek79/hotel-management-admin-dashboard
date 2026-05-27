@@ -1,7 +1,19 @@
-import { SignIn } from "@clerk/nextjs";
+"use client";
+
 import { Building2 } from "lucide-react";
+import { useState } from "react";
+
+import { SignInForm, SignUpForm } from "@/components/auth";
+
+type ViewState = "sign-in" | "sign-up";
 
 const LoginPage = () => {
+  const [view, setView] = useState<ViewState>("sign-in");
+
+  const handleToggle = () => {
+    setView((current) => (current === "sign-in" ? "sign-up" : "sign-in"));
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
       <div className="w-full max-w-sm">
@@ -18,12 +30,11 @@ const LoginPage = () => {
           </p>
         </div>
 
-        <SignIn
-          routing="path"
-          path="/login"
-          forceRedirectUrl="/dashboard"
-          fallbackRedirectUrl="/dashboard"
-        />
+        {view === "sign-in" ? (
+          <SignInForm onToggle={handleToggle} />
+        ) : (
+          <SignUpForm onToggle={handleToggle} />
+        )}
       </div>
     </main>
   );
