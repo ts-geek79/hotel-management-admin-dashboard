@@ -1,0 +1,35 @@
+query GetAllRooms {
+  allRooms {
+    nodes {
+      ...RoomFields
+    }
+  }
+}
+
+query GetRoomById($id: Int!) {
+  roomByRoomId(roomId: $id) {
+    ...RoomFields
+  }
+}
+
+mutation CreateRoom($input: CreateRoomInput!) {
+  createRoom(input: $input) {
+    room {
+      ...RoomFields
+    }
+  }
+}
+
+mutation UpdateRoom($id: Int!, $patch: RoomPatch!) {
+  updateRoomByRoomId(input: { roomId: $id, roomPatch: $patch }) {
+    room {
+      ...RoomFields
+    }
+  }
+}
+
+mutation DeleteRoom($id: Int!) {
+  deleteRoomByRoomId(input: { roomId: $id }) {
+    deletedRoomId
+  }
+}

@@ -1,0 +1,7 @@
+fragment RoomFields on Room {
+  roomId
+  roomNumber
+  roomType
+  pricePerNight
+  status
+}

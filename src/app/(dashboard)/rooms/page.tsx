@@ -1,10 +1,20 @@
 "use client";
 
+import {
+  useCreateRoomMutation,
+  useDeleteRoomMutation,
+  useGetAllRoomsQuery,
+  useUpdateRoomMutation,
+} from "@/gql/graphql";
 import useForm from "@/hooks/useForm";
-import api from "@/lib/api";
+import { mapRooms } from "@/lib/graphql-adapters";
+import {
+  buildCreateRoomInput,
+  buildRoomPatch,
+} from "@/lib/graphql-mappers";
 import { CreateRoomInput, createRoomSchema } from "@/modules/rooms/room.schema";
 import { Room } from "@/types";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   AlertDialog,
@@ -214,32 +224,23 @@ const RoomForm = ({
 };
 
 const RoomPage = () => {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [editRoom, setEditRoom] = useState<Room | null>(null);
 
-  const fetchRooms = async () => {
-    try {
-      setLoading(true);
-      const data = await api("/api/rooms");
-      setRooms(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, loading, error, refetch } = useGetAllRoomsQuery();
+  const [createRoom] = useCreateRoomMutation({ refetchQueries: ["GetAllRooms"] });
+  const [updateRoom] = useUpdateRoomMutation({ refetchQueries: ["GetAllRooms"] });
+  const [deleteRoom] = useDeleteRoomMutation({ refetchQueries: ["GetAllRooms"] });
 
-  useEffect(() => {
-    fetchRooms();
-  }, []);
+  const rooms = useMemo(
+    () => mapRooms(data?.allRooms?.nodes),
+    [data?.allRooms?.nodes],
+  );
+  const errorMessage = error?.message ?? "";
 
   const handleDelete = async (id: number) => {
     try {
-      await api(`/api/rooms/${id}`, { method: "DELETE" });
-      setRooms((prev) => prev.filter((r) => r.room_id !== id));
+      await deleteRoom({ variables: { id } });
       toast.success("Room deleted");
     } catch {
       toast.error("Failed to delete room");
@@ -272,16 +273,14 @@ const RoomPage = () => {
               }}
               submitLabel="Add Room"
               apiCall={(data) =>
-                api("/api/rooms", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(data),
+                createRoom({
+                  variables: { input: buildCreateRoomInput(data) },
                 })
               }
               onSuccess={() => {
                 toast.success("Room added successfully");
                 setAddOpen(false);
-                fetchRooms();
+                refetch();
               }}
             />
           </DialogContent>
@@ -310,13 +309,13 @@ const RoomPage = () => {
                   ))}
                 </TableRow>
               ))
-            ) : error ? (
+            ) : errorMessage ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
                   className="text-center text-red-500 py-8"
                 >
-                  {error}
+                  {errorMessage}
                 </TableCell>
               </TableRow>
             ) : rooms.length === 0 ? (
@@ -373,16 +372,17 @@ const RoomPage = () => {
                           }}
                           submitLabel="Save Changes"
                           apiCall={(data) =>
-                            api(`/api/rooms/${room.room_id}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify(data),
+                            updateRoom({
+                              variables: {
+                                id: room.room_id,
+                                patch: buildRoomPatch(data),
+                              },
                             })
                           }
                           onSuccess={() => {
                             toast.success("Room updated successfully");
                             setEditRoom(null);
-                            fetchRooms();
+                            refetch();
                           }}
                         />
                       </DialogContent>

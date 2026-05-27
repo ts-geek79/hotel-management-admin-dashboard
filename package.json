@@ -10,10 +10,13 @@
     "migrate:create": "node-pg-migrate create",
     "migrate:up": "node-pg-migrate -r dotenv/config up",
     "migrate:down": "node-pg-migrate -r dotenv/config down",
-    "seed": "tsx -r dotenv/config seeds/seed.ts"
+    "seed": "tsx -r dotenv/config seeds/seed.ts",
+    "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
+    "@apollo/client": "^4.2.0",
     "@clerk/nextjs": "^6.36.0",
+    "@graphql-codegen/typescript-react-apollo": "^4.4.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -37,6 +40,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^7.0.0",
+    "@graphql-codegen/typescript": "^6.0.1",
+    "@graphql-codegen/typescript-operations": "^6.0.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",

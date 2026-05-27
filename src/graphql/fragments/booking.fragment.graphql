@@ -1,0 +1,14 @@
+fragment BookingFields on Booking {
+  bookingId
+  guestId
+  roomId
+  checkInDate
+  checkOutDate
+  status
+  guestByGuestId {
+    ...GuestFields
+  }
+  roomByRoomId {
+    ...RoomFields
+  }
+}

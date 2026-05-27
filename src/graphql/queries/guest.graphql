@@ -1,0 +1,35 @@
+query GetAllGuests {
+  allGuests {
+    nodes {
+      ...GuestFields
+    }
+  }
+}
+
+query GetGuestById($id: Int!) {
+  guestByGuestId(guestId: $id) {
+    ...GuestFields
+  }
+}
+
+mutation CreateGuest($input: CreateGuestInput!) {
+  createGuest(input: $input) {
+    guest {
+      ...GuestFields
+    }
+  }
+}
+
+mutation UpdateGuest($id: Int!, $patch: GuestPatch!) {
+  updateGuestByGuestId(input: { guestId: $id, guestPatch: $patch }) {
+    guest {
+      ...GuestFields
+    }
+  }
+}
+
+mutation DeleteGuest($id: Int!) {
+  deleteGuestByGuestId(input: { guestId: $id }) {
+    deletedGuestId
+  }
+}

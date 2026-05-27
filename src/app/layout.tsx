@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
+import { ApolloProviderWrapper } from "@/lib/apollo-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -30,7 +31,9 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          {children}
+          <ApolloProviderWrapper>
+            {children}
+          </ApolloProviderWrapper>
           <Toaster position="bottom-right" />
         </body>
       </html>

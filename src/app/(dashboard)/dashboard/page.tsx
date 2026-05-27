@@ -1,8 +1,13 @@
 "use client";
 
-import api from "@/lib/api";
+import {
+  useGetAllBookingsQuery,
+  useGetAllGuestsQuery,
+  useGetAllRoomsQuery,
+} from "@/gql/graphql";
+import { mapBookings, mapGuests, mapRooms } from "@/lib/graphql-adapters";
 import { Booking, Guest, Room } from "@/types";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -88,29 +93,24 @@ const bookingLabel: Record<Booking["status"], string> = {
 const toDateInput = (dateStr: string) => dateStr?.slice(0, 10) ?? "";
 
 const DashboardPage = () => {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: roomsData, loading: roomsLoading } = useGetAllRoomsQuery();
+  const { data: guestsData, loading: guestsLoading } = useGetAllGuestsQuery();
+  const { data: bookingsData, loading: bookingsLoading } =
+    useGetAllBookingsQuery();
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [r, g, b] = await Promise.all([
-          api("/api/rooms"),
-          api("/api/guests"),
-          api("/api/bookings"),
-        ]);
-        setRooms(r);
-        setGuests(g);
-        setBookings(b);
-      } catch {
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, []);
+  const loading = roomsLoading || guestsLoading || bookingsLoading;
+  const rooms = useMemo(
+    () => mapRooms(roomsData?.allRooms?.nodes),
+    [roomsData?.allRooms?.nodes],
+  );
+  const guests = useMemo(
+    () => mapGuests(guestsData?.allGuests?.nodes),
+    [guestsData?.allGuests?.nodes],
+  );
+  const bookings = useMemo(
+    () => mapBookings(bookingsData?.allBookings?.nodes),
+    [bookingsData?.allBookings?.nodes],
+  );
 
   const availableRooms = rooms.filter((r) => r.status === "available").length;
   const activeBookings = bookings.filter(

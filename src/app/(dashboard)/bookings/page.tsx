@@ -1,13 +1,29 @@
 "use client";
 
+import {
+  useCreateBookingMutation,
+  useDeleteBookingMutation,
+  useGetAllBookingsQuery,
+  useGetAllGuestsQuery,
+  useGetAllRoomsQuery,
+  useUpdateBookingMutation,
+} from "@/gql/graphql";
 import useForm from "@/hooks/useForm";
-import api from "@/lib/api";
+import {
+  mapBookings,
+  mapGuests,
+  mapRooms,
+} from "@/lib/graphql-adapters";
+import {
+  buildBookingPatch,
+  buildCreateBookingInput,
+} from "@/lib/graphql-mappers";
 import {
   CreateBookingInput,
   createBookingSchema,
 } from "@/modules/bookings/booking.schema";
 import { Booking, Guest, Room } from "@/types";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import type { DayButtonProps } from "react-day-picker";
 
 import {
@@ -635,41 +651,51 @@ const CalendarView = ({ bookings, guestMap, roomMap }: CalendarViewProps) => {
 
 // ── BookingPage (table + calendar + dialogs) ──────────────────────────────────
 const BookingPage = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [editBooking, setEditBooking] = useState<Booking | null>(null);
   const [view, setView] = useState<"calendar" | "table">("calendar");
 
-  const fetchAll = async () => {
-    try {
-      setLoading(true);
-      const [b, g, r] = await Promise.all([
-        api("/api/bookings"),
-        api("/api/guests"),
-        api("/api/rooms"),
-      ]);
-      setBookings(b);
-      setGuests(g);
-      setRooms(r);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: bookingsData,
+    loading: bookingsLoading,
+    error: bookingsError,
+    refetch: refetchBookings,
+  } = useGetAllBookingsQuery();
+  const { data: guestsData, loading: guestsLoading } = useGetAllGuestsQuery();
+  const { data: roomsData, loading: roomsLoading } = useGetAllRoomsQuery();
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  const [createBooking] = useCreateBookingMutation({
+    refetchQueries: ["GetAllBookings"],
+  });
+  const [updateBooking] = useUpdateBookingMutation({
+    refetchQueries: ["GetAllBookings"],
+  });
+  const [deleteBooking] = useDeleteBookingMutation({
+    refetchQueries: ["GetAllBookings"],
+  });
+
+  const loading = bookingsLoading || guestsLoading || roomsLoading;
+  const errorMessage = bookingsError?.message ?? "";
+  const bookings = useMemo(
+    () => mapBookings(bookingsData?.allBookings?.nodes),
+    [bookingsData?.allBookings?.nodes],
+  );
+  const guests = useMemo(
+    () => mapGuests(guestsData?.allGuests?.nodes),
+    [guestsData?.allGuests?.nodes],
+  );
+  const rooms = useMemo(
+    () => mapRooms(roomsData?.allRooms?.nodes),
+    [roomsData?.allRooms?.nodes],
+  );
+
+  const refetchAll = () => {
+    refetchBookings();
+  };
 
   const handleDelete = async (id: number) => {
     try {
-      await api(`/api/bookings/${id}`, { method: "DELETE" });
-      setBookings((prev) => prev.filter((b) => b.booking_id !== id));
+      await deleteBooking({ variables: { id } });
       toast.success("Booking deleted");
     } catch {
       toast.error("Failed to delete booking");
@@ -735,16 +761,14 @@ const BookingPage = () => {
               guests={guests}
               rooms={rooms}
               apiCall={(data) =>
-                api("/api/bookings", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(data),
+                createBooking({
+                  variables: { input: buildCreateBookingInput(data) },
                 })
               }
               onSuccess={() => {
                 toast.success("Booking added successfully");
                 setAddOpen(false);
-                fetchAll();
+                refetchAll();
               }}
             />
           </DialogContent>
@@ -796,13 +820,13 @@ const BookingPage = () => {
                     ))}
                   </TableRow>
                 ))
-              ) : error ? (
+              ) : errorMessage ? (
                 <TableRow>
                   <TableCell
                     colSpan={7}
                     className="text-center text-red-500 py-8"
                   >
-                    {error}
+                    {errorMessage}
                   </TableCell>
                 </TableRow>
               ) : bookings.length === 0 ? (
@@ -869,16 +893,17 @@ const BookingPage = () => {
                             guests={guests}
                             rooms={rooms}
                             apiCall={(data) =>
-                              api(`/api/bookings/${booking.booking_id}`, {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(data),
+                              updateBooking({
+                                variables: {
+                                  id: booking.booking_id,
+                                  patch: buildBookingPatch(data),
+                                },
                               })
                             }
                             onSuccess={() => {
                               toast.success("Booking updated successfully");
                               setEditBooking(null);
-                              fetchAll();
+                              refetchAll();
                             }}
                           />
                         </DialogContent>

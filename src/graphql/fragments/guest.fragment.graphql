@@ -1,0 +1,6 @@
+fragment GuestFields on Guest {
+  guestId
+  fullName
+  email
+  phoneNumber
+}

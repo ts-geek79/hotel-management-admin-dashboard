@@ -1,13 +1,19 @@
 "use client";
 
+import {
+  useCreateGuestMutation,
+  useGetAllBookingsQuery,
+  useGetAllGuestsQuery,
+} from "@/gql/graphql";
 import useForm from "@/hooks/useForm";
-import api from "@/lib/api";
+import { mapBookings, mapGuests } from "@/lib/graphql-adapters";
+import { buildCreateGuestInput } from "@/lib/graphql-mappers";
 import {
   CreateGuestInput,
   createGuestSchema,
 } from "@/modules/guests/guest.schema";
 import { Booking, Guest } from "@/types";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -172,22 +178,14 @@ const GuestForm = ({
 
 // ── Guest Detail (read-only, no form) — unchanged ────────────────────────────
 const GuestDetailContent = ({ guest }: { guest: Guest }) => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        const data: Booking[] = await api("/api/bookings");
-        setBookings(data.filter((b) => b.guest_id === guest.guest_id));
-      } catch {
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBookings();
-  }, [guest.guest_id]);
+  const { data, loading } = useGetAllBookingsQuery();
+  const bookings = useMemo(
+    () =>
+      mapBookings(data?.allBookings?.nodes).filter(
+        (b) => b.guest_id === guest.guest_id,
+      ),
+    [data?.allBookings?.nodes, guest.guest_id],
+  );
 
   return (
     <div className="flex flex-col gap-5 pt-1">
@@ -266,27 +264,19 @@ const GuestDetailContent = ({ guest }: { guest: Guest }) => {
 
 // ── Guest Page (table + dialogs) — unchanged ─────────────────────────────────
 const GuestPage = () => {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [viewGuest, setViewGuest] = useState<Guest | null>(null);
 
-  const fetchGuests = async () => {
-    try {
-      setLoading(true);
-      const data = await api("/api/guests");
-      setGuests(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, loading, error, refetch } = useGetAllGuestsQuery();
+  const [createGuest] = useCreateGuestMutation({
+    refetchQueries: ["GetAllGuests"],
+  });
 
-  useEffect(() => {
-    fetchGuests();
-  }, []);
+  const guests = useMemo(
+    () => mapGuests(data?.allGuests?.nodes),
+    [data?.allGuests?.nodes],
+  );
+  const errorMessage = error?.message ?? "";
 
   return (
     <div className="space-y-4 p-6">
@@ -310,16 +300,14 @@ const GuestPage = () => {
               initialValues={{ full_name: "", email: "", phone_number: "" }}
               submitLabel="Add Guest"
               apiCall={(data) =>
-                api("/api/guests", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(data),
+                createGuest({
+                  variables: { input: buildCreateGuestInput(data) },
                 })
               }
               onSuccess={() => {
                 toast.success("Guest added successfully.");
                 setAddOpen(false);
-                fetchGuests();
+                refetch();
               }}
             />
           </DialogContent>
@@ -348,13 +336,13 @@ const GuestPage = () => {
                   ))}
                 </TableRow>
               ))
-            ) : error ? (
+            ) : errorMessage ? (
               <TableRow>
                 <TableCell
                   colSpan={4}
                   className="text-center text-red-500 py-8"
                 >
-                  {error}
+                  {errorMessage}
                 </TableCell>
               </TableRow>
             ) : guests.length === 0 ? (

@@ -1,0 +1,35 @@
+query GetAllBookings {
+  allBookings {
+    nodes {
+      ...BookingFields
+    }
+  }
+}
+
+query GetBookingById($id: Int!) {
+  bookingByBookingId(bookingId: $id) {
+    ...BookingFields
+  }
+}
+
+mutation CreateBooking($input: CreateBookingInput!) {
+  createBooking(input: $input) {
+    booking {
+      ...BookingFields
+    }
+  }
+}
+
+mutation UpdateBooking($id: Int!, $patch: BookingPatch!) {
+  updateBookingByBookingId(input: { bookingId: $id, bookingPatch: $patch }) {
+    booking {
+      ...BookingFields
+    }
+  }
+}
+
+mutation DeleteBooking($id: Int!) {
+  deleteBookingByBookingId(input: { bookingId: $id }) {
+    deletedBookingId
+  }
+}
